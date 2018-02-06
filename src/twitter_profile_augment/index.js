@@ -7,7 +7,14 @@ const twit = new twitter({
     access_token_secret: process.env.TwitterAccessTokenSecret
 });
 
+// Function: Handles messages in the toaugment topic, where the platform is 'twitter'
+//
+// Queries the Instagram API for profile related information
+
 module.exports = function (context, message) {
+
+	context.log({Message: message});
+
     return twit.get('users/show.json', { user_id: message.social.twitter.id }, function (err, user) {
         let data = message;
 
@@ -17,6 +24,7 @@ module.exports = function (context, message) {
             data: user
         };
 
+		context.log({'Data sent to the queue': data});
         context.bindings.out = data;
 
         context.done(err);

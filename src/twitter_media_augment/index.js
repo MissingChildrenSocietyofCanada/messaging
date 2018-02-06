@@ -15,13 +15,17 @@ const twit = new twitter({
     access_token_secret: process.env.TwitterAccessTokenSecret
 });
 
+// Function: Handles messages in the toaugment topic, where the platform is 'twitter'
+//
+// Queries the Instagram API for media related information
+
 module.exports = function (context, message) {
     return twit.get(`statuses/show/${message.request.mediaid}`, { include_entities: true })
         .then(getLocation)
         .then(getImages)
         .then(getHistory)
         .then((result) => { return setOutputBinding(result, message) })
-        .catch((error) => { context.log(error) });
+        .catch((error) => { context.log(error); context.done(error) });
 
     function getLocation(message) {
         if (message.place != null) {
@@ -95,7 +99,10 @@ module.exports = function (context, message) {
     }
 
     function setOutputBinding(result, message) {
-        let data = message;
+		
+		context.log({Message: message});
+		
+		let data = message;
 
         data.response = {
             platform: "twitter",
@@ -103,7 +110,9 @@ module.exports = function (context, message) {
             data: result
         };
 
-        context.bindings.out = data;
+		context.log({'Data sent to the queue': data});
+		context.bindings.out = data;
+		context.done();
         return data;
     }
 };

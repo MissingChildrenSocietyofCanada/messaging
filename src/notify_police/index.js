@@ -1,14 +1,19 @@
 require('dotenv').config();
 var util = require('util');
 
+// Function: Trigger via HTTP request
+//
+// Sends an email to the supplied email address, with an access token.  Saves the access token to the database, 
+// under the reporting database / accessTokens collection.
+
 module.exports = function (context, req) {
-
-
 
     if (typeof req.body != 'undefined' && typeof req.body == 'object') {
 
-        var myReq = req.body;
+		var myReq = req.body;
         var myToken = new oAccessToken(myReq.userid, myReq.email, guid());
+
+		context.log({Request: myReq});
 
         //save to document db
         context.bindings.out = myToken;
@@ -17,9 +22,9 @@ module.exports = function (context, req) {
         sendMail(myToken.userid, myToken.email, myToken.accesstoken, context);
         
     } else {
-            var statusCode = 400;
-            var responseBody = "Invalid request object";
-            returnFail(statusCode,responseBody,context);
+		var statusCode = 400;
+		var responseBody = "Invalid request object";
+		returnFail(statusCode,responseBody,context);
     }
 
 }
@@ -28,48 +33,49 @@ module.exports = function (context, req) {
 
 function sendMail(userid, email, token, theContext) {
 
-    console.log('Sending Notification');
+	try {
+	    context.log('Sending notification to %s for user id %s', email, userid);
 
-    var toEmail = email;
-    var userId = userid
-    var userToken = token;
-    var profileUrl = util.format("%s%s?access_token=%s", process.env.DashboardProfileUrl, userId, userToken);
+		var toEmail = email;
+		var userId = userid
+		var userToken = token;
+		var profileUrl = util.format("%s%s?access_token=%s", process.env.DashboardProfileUrl, userId, userToken);
 
-    //console.log('------>' + profileUrl);
+		//console.log('------>' + profileUrl);
 
-    var msgContent = util.format("Please view the profile here: %s", profileUrl);
+		var msgContent = util.format("Please view the profile here: %s", profileUrl);
 
-    var helper = require('sendgrid').mail;
+		var helper = require('sendgrid').mail;
 
-    from_email = new helper.Email(process.env.NotifyEmailFrom);
-    to_email = new helper.Email(toEmail);
-    subject = "Missing Children of Canada Alert";
-    content = new helper.Content("text/plain", msgContent);
-    mail = new helper.Mail(from_email, subject, to_email, content);
+		from_email = new helper.Email(process.env.NotifyEmailFrom);
+		to_email = new helper.Email(toEmail);
+		subject = "Missing Children Society of Canada: Help Find Me Alert";
+		content = new helper.Content("text/plain", msgContent);
+		mail = new helper.Mail(from_email, subject, to_email, content);
 
-    // Set to high importance
-    header = new helper.Header("Priority", "Urgent");
-    mail.addHeader(header);
-    header = new helper.Header("Importance", "high");
-    mail.addHeader(header);
+		// Set to high importance
+		mail.addHeader(new helper.Header("Priority", "Urgent"));
+		mail.addHeader(new helper.Header("Importance", "high"));
 
-    var sg = require('sendgrid')(process.env.SendGridAPIKey);
+		var sg = require('sendgrid')(process.env.SendGridAPIKey);
+		var requestBody = mail.toJSON();
+		var emptyRequest = require('sendgrid-rest').request;
+		var requestPost = JSON.parse(JSON.stringify(emptyRequest));
 
-    var requestBody = mail.toJSON();
-    var emptyRequest = require('sendgrid-rest').request;
-    var requestPost = JSON.parse(JSON.stringify(emptyRequest));
-    requestPost.method = 'POST';
-    requestPost.path = '/v3/mail/send';
-    requestPost.body = requestBody;
-    sg.API(requestPost, function (error, response) {
-        if (error){
-            returnFail(response.statusCode,"Error occurred sending email", theContext);
-        } else {
-            returnSuccess(201,"Access Token Created, Email sent", theContext);
-        }
+		requestPost.path = '/v3/mail/send';
+		requestPost.body = requestBody;
 
-    })
-
+		sg.API(requestPost, function (error, response) {
+			if (error){
+				returnFail(response.statusCode,"Error occurred sending email", theContext);
+			} else {
+				returnSuccess(201,"Access Token Created, Email sent", theContext);
+			}
+		})
+	}
+	catch (error) {
+		returnFail(400, error, theContext);
+	}
 }
 
 function oAccessToken(userid, email, accesstoken) {
@@ -111,6 +117,7 @@ function returnFail(statusCode,Message,context){
         var defaultstatusCode = 400;
         var defaultresponseBody = "Invalid request object";
         context.res = { status : (statusCode?statusCode:defaultstatusCode),
-                        body: (Message?Message:defaultresponseBody)};
-        context.done();
+						body: (Message?Message:defaultresponseBody)};
+		context.log.error(Message?Message:defaultresponseBody);
+        context.done(Message);
 }
