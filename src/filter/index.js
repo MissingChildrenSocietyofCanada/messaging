@@ -12,7 +12,7 @@ module.exports = function (context, message) {
 	// Execute the query contained in the database binding (function.json)
     var documents = context.bindings.documents;
 
-	if (!documents || document.length === 0) {
+	if (!documents || documents.length === 0) {
 		err = 'No document data returned.';
 		context.log.warn(err);
 		context.done(err);
