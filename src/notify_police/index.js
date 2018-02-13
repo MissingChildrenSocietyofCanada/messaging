@@ -31,7 +31,7 @@ module.exports = function (context, req) {
 
 
 
-function sendMail(userid, email, token, theContext) {
+function sendMail(userid, email, token, context) {
 
 	try {
 	    context.log('Sending notification to %s for user id %s', email, userid);
@@ -67,14 +67,14 @@ function sendMail(userid, email, token, theContext) {
 
 		sg.API(requestPost, function (error, response) {
 			if (error){
-				returnFail(response.statusCode,"Error occurred sending email", theContext);
+				returnFail(response.statusCode,"Error occurred sending email", context);
 			} else {
-				returnSuccess(201,"Access Token Created, Email sent", theContext);
+				returnSuccess(201,"Access Token Created, Email sent", context);
 			}
 		})
 	}
 	catch (error) {
-		returnFail(400, error, theContext);
+		returnFail(400, error, context);
 	}
 }
 
