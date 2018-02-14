@@ -62,6 +62,7 @@ function sendMail(userid, email, token, context) {
 		var emptyRequest = require('sendgrid-rest').request;
 		var requestPost = JSON.parse(JSON.stringify(emptyRequest));
 
+		requestPost.method = 'POST';
 		requestPost.path = '/v3/mail/send';
 		requestPost.body = requestBody;
 
